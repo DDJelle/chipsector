@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nederlandse Chipindustrie – Bedrijvenoverzicht</title>
+
+  <!-- Plotly.js — treemap + animaties -->
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+  <!-- PapaParse — CSV parsen vanuit Google Sheets -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- Leaflet — kaartweergave -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body  { font-family: Georgia, serif; background: #f5f4f0; min-height: 100vh; }
+    #wrap { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+
+    /* Tabs */
+    .tabs     { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tab      { font-family: Arial; font-size: 12px; letter-spacing: .5px; padding: 6px 16px;
+                border: 1px solid #e0ddd6; background: #fff; color: #888; border-radius: 2px;
+                cursor: pointer; transition: background .15s, color .15s; }
+    .tab.on   { background: #1a3a5c; color: #fff; border-color: #1a3a5c; }
+
+    /* Metric-toggle */
+    .m-tabs   { display: flex; gap: 4px; }
+    .m-tab    { font-family: Arial; font-size: 11px; letter-spacing: .5px; padding: 5px 12px;
+                border: 1px solid #e0ddd6; background: #fff; color: #888; border-radius: 2px;
+                cursor: pointer; transition: background .15s, color .15s; }
+    .m-tab.on { background: #e8640c; color: #fff; border-color: #e8640c; }
+
+    /* View-toggle (iconen boven visual) */
+    .v-tabs   { display: inline-flex; gap: 4px; }
+    .v-tab    { width: 36px; height: 36px; border: 1px solid #e0ddd6; background: #fff; color: #bbb;
+                border-radius: 2px; cursor: pointer; display: flex; align-items: center;
+                justify-content: center; transition: background .15s, color .15s; }
+    .v-tab svg { width: 17px; height: 17px; }
+    .v-tab.on { background: #1a3a5c; color: #fff; border-color: #1a3a5c; }
+    .v-tab.on svg { stroke: #fff; }
+
+    /* Visualisatie-wrapper */
+    #tm-wrap  { background: #fff; border: 1px solid #e0ddd6; border-bottom: none; position: relative; }
+    #treemap  { height: 504px; }
+    #map      { height: 504px; display: none; }
+    #zoom-out { display: none; position: absolute; top: 10px; right: 10px; z-index: 1000;
+                background: rgba(255,255,255,0.9); border: 1px solid #e0ddd6; border-radius: 50%;
+                width: 32px; height: 32px; cursor: pointer; align-items: center; justify-content: center;
+                box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+    #zoom-out.active { display: flex; }
+    #zoom-out svg { width: 16px; height: 16px; }
+
+    /* Legenda */
+    #legend   { background: #fff; border: 1px solid #e0ddd6; border-top: none; padding: 10px 16px;
+                display: flex; flex-wrap: wrap; gap: 6px 20px; margin-bottom: 28px; }
+    .l-item   { display: flex; align-items: flex-start; gap: 6px; }
+    .l-dot    { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; margin-top: 2px; }
+    .l-label  { font-family: Arial; font-size: 12px; color: #444; }
+
+    /* Bar header */
+    #bar-hdr  { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4px; }
+    #filter-label { font-family: Arial; font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+                    color: #888; padding-bottom: 8px; border-bottom: 2px solid #e8640c; display: inline-block; }
+    #reset    { background: none; border: 1px solid #888; color: #888; font-family: Arial;
+                font-size: 11px; padding: 5px 12px; cursor: pointer; }
+    #download { background: none; border: 1px solid #888; color: #888; font-family: Arial;
+                font-size: 11px; padding: 5px 12px; cursor: pointer; margin-left: 6px; }
+
+    /* Bar list */
+    #bar-list { background: #fff; border: 1px solid #e0ddd6; padding: 0 20px; }
+    .b-row    { border-bottom: 1px solid #e0ddd6; }
+    .b-row:last-child { border-bottom: none; }
+    .b-inner  { display: flex; align-items: center; padding: 11px 0; }
+    .b-num    { color: #888; font-family: Arial; font-size: 12px; min-width: 30px; flex-shrink: 0; }
+    .b-info   { flex: 0 0 220px; min-width: 0; overflow: hidden; }
+    .b-name   { font-family: Arial; font-weight: bold; font-size: 14px;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .b-sub    { font-family: Arial; font-size: 11px; color: #888;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .b-bar    { flex: 1; padding: 0 16px; display: flex; align-items: center; }
+    .b-fill   { height: 7px; border-radius: 3px; }
+    .b-val    { font-family: Arial; font-weight: bold; font-size: 13px; flex: 0 0 130px; text-align: right; }
+    .b-btn    { background: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer;
+                font-size: 15px; line-height: 20px; padding: 0; margin-left: 14px;
+                flex-shrink: 0; text-align: center; border: 1px solid; }
+
+    /* Detail paneel */
+    .detail      { display: none; background: #f5f4f0; padding: 14px 16px;
+                   margin: 0 0 10px 38px; border-left: 4px solid; border-radius: 0 4px 4px 0; }
+    .detail.open { display: block; }
+    .d-head      { font-family: Arial; font-weight: bold; font-size: 15px; margin-bottom: 10px; }
+    .d-row       { margin: 3px 0; font-family: Arial; font-size: 13px; }
+    .d-key       { color: #888; min-width: 120px; display: inline-block; }
+
+    /* Leaflet kaart */
+    .leaflet-container { background: #ddeef5; cursor: default !important; }
+    .leaflet-interactive { cursor: pointer !important; }
+    .prov-tip.leaflet-tooltip {
+      font-family: Arial, sans-serif; font-size: 12px;
+      background: #fff; border: 1px solid #e0ddd6; border-radius: 2px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.12); color: #444; padding: 4px 8px;
+    }
+    .prov-tip.leaflet-tooltip::before { display: none; }
+    .leaflet-tooltip-pane .leaflet-tooltip { pointer-events: none; }
+
+    /* Laad-indicator */
+    #loading { display: flex; align-items: center; justify-content: center;
+               min-height: 300px; font-family: Arial; color: #888; font-size: 14px; }
+
+    /* Footer */
+    #footer  { text-align: center; padding: 24px; font-family: Arial; font-size: 12px;
+               color: #888; border-top: 1px solid #e0ddd6; }
+  </style>
+</head>
+<body>
+
+<div id="wrap">
+  <div id="loading">Data laden…</div>
+</div>
+<div id="footer">Brondata: intern onderzoeksbestand chipindustrie NL · Dashboard: Digital Digging</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// CONFIGURATIE – vervang de URL door jouw Google Sheets CSV-link:
+//   Sheets → Bestand → Delen → Publiceren op het web → Blad 1 → CSV → Kopieer
+//
+// Verwachte kolomnamen in de sheet (rij 1):
+//   naam | activiteit | type | provincie | asml | omzet | winst | jaar |
+//   werknemers | adres | opgericht | ubo | eigenaar
+//
+// eigenaar_type wordt automatisch berekend — niet nodig in de sheet.
+// ══════════════════════════════════════════════════════════════════════════════
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRD-PPXdQm8ArJCnBc8u7D5Gl8biX79O9I3fWVVsmeAhciadADCQVZJ2knANi59I9CKcHO3eO1I8pwp/pub?gid=1931816964&single=true&output=csv';
+
+// ── Kleuren ───────────────────────────────────────────────────────────────────
+const KLEUREN = {
+  type: {
+    'Chipmachine(onderdelen)maker': '#1a3a5c',
+    'Chipdienstverlener':           '#2e9e6b',
+    'Chipontwikkelaar':             '#7b4ea6',
+    'Chipfabrikant':                '#e8640c',
+  },
+  provincie: {
+    'Noord-Brabant': '#1a3a5c', 'Gelderland':    '#2e9e6b',
+    'Zuid-Holland':  '#7b4ea6', 'Noord-Holland': '#e8640c',
+    'Utrecht':       '#c0392b', 'Overijssel':    '#d4a017',
+  },
+  eigenaar_type: {
+    'Beursgenoteerd':      '#1a3a5c', 'Durfinvesteerders':   '#7b4ea6',
+    'Familiebedrijf':      '#2e9e6b', 'Oprichters':          '#e8640c',
+    'Investeringsfonds':   '#2980b9', 'Branchegenoot':       '#d4a017',
+    'Buitenlands bedrijf': '#c0392b', 'Onbekend':            '#aaaaaa',
+    'Overig':              '#888888',
+  },
+};
+
+const FILTER_LABELS = {
+  type: 'type bedrijf', provincie: 'provincie', eigenaar_type: 'eigenaar',
+};
+
+// ── Fallbackdata (actief als SHEET_URL niet is ingesteld of laden mislukt) ────
+const FALLBACK = [
+  { naam:'ASML',                   type:'Chipmachine(onderdelen)maker', provincie:'Noord-Brabant', asml:true,  omzet:28263, winst:9042,  jaar:2024, werknemers:19000, adres:'Veldhoven',     opgericht:1984, ubo:'NL',        eigenaar:'Beursgenoteerd',                            activiteit:'Lithografiemachines/chipmachines',          lat:51.415, lon:5.385  },
+  { naam:'NXP',                    type:'Chipontwikkelaar',             provincie:'Noord-Brabant', asml:false, omzet:11655, winst:2863,  jaar:2024, werknemers:34500, adres:'Eindhoven',     opgericht:2006, ubo:'NL',        eigenaar:'Beursgenoteerd',                            activiteit:'Chipontwerper, auto-industrie',             lat:51.442, lon:5.479  },
+  { naam:'Nexperia',               type:'Chipfabrikant',                provincie:'Gelderland',    asml:false, omzet:2155,  winst:476,   jaar:2023, werknemers:13000, adres:'Nijmegen',      opgericht:2017, ubo:'China',     eigenaar:'Wingtech Technology',                       activiteit:"Chipmaker, o.a. auto's",                   lat:51.843, lon:5.853  },
+  { naam:'VDL ETG',                type:'Chipmachine(onderdelen)maker', provincie:'Noord-Brabant', asml:true,  omzet:2180,  winst:null,  jaar:2023, werknemers:null,  adres:'Eindhoven',     opgericht:1900, ubo:'NL',        eigenaar:'Familiebedrijf (Van der Leegte)',            activiteit:'Wafer handler',                            lat:51.450, lon:5.462  },
+  { naam:'ASM',                    type:'Chipmachine(onderdelen)maker', provincie:'Noord-Holland', asml:false, omzet:1481,  winst:868,   jaar:2024, werknemers:4600,  adres:'Amsterdam',     opgericht:1968, ubo:'NL',        eigenaar:'Beursgenoteerd',                            activiteit:'Wafer processing equipment',               lat:52.374, lon:4.898  },
+  { naam:'Aalberts',               type:'Chipmachine(onderdelen)maker', provincie:'Utrecht',       asml:true,  omzet:501,   winst:null,  jaar:2024, werknemers:null,  adres:'Utrecht',       opgericht:1975, ubo:'NL',        eigenaar:'Beursgenoteerd',                            activiteit:'Toeleverancier chipmachinefabrikanten',    lat:52.090, lon:5.121  },
+  { naam:'Besi',                   type:'Chipmachine(onderdelen)maker', provincie:'Gelderland',    asml:false, omzet:607,   winst:189,   jaar:2024, werknemers:1946,  adres:'Duiven',        opgericht:1995, ubo:'NL',        eigenaar:'Beursgenoteerd',                            activiteit:'Chipbindermachines',                       lat:51.945, lon:6.019  },
+  { naam:'Neways',                 type:'Chipmachine(onderdelen)maker', provincie:'Noord-Brabant', asml:true,  omzet:620,   winst:3,     jaar:2024, werknemers:3000,  adres:'Son',           opgericht:1969, ubo:'NL',        eigenaar:'Oprichter (Bernard ten Doeschot)',           activiteit:'Lithografie-ondersteuning',                lat:51.520, lon:5.487  },
+  { naam:'Prodrive',               type:'Chipmachine(onderdelen)maker', provincie:'Noord-Brabant', asml:false, omzet:357,   winst:null,  jaar:2024, werknemers:2203,  adres:'Son',           opgericht:1993, ubo:'NL',        eigenaar:'HAL Investment (fam. Van der Vorm)',         activiteit:'R&D en productiepartner semicon',           lat:51.513, lon:5.493  },
+  { naam:'NTS Group',              type:'Chipmachine(onderdelen)maker', provincie:'Noord-Brabant', asml:true,  omzet:264,   winst:null,  jaar:2023, werknemers:1723,  adres:'Eindhoven',     opgericht:1947, ubo:'NL',        eigenaar:'Familie Wintermans / NPM Capital',          activiteit:'Mechatronicasystemen',                     lat:51.435, lon:5.471  },
+  { naam:'Demcon',                 type:'Chipmachine(onderdelen)maker', provincie:'Overijssel',    asml:false, omzet:137,   winst:8,     jaar:2023, werknemers:1100,  adres:'Enschede',      opgericht:1993, ubo:'NL',        eigenaar:'Oprichters',                                activiteit:'Testsystemen',                             lat:52.221, lon:6.896  },
+  { naam:'KMWE',                   type:'Chipmachine(onderdelen)maker', provincie:'Noord-Brabant', asml:false, omzet:114,   winst:null,  jaar:2024, werknemers:896,   adres:'Eindhoven',     opgericht:1955, ubo:'NL',        eigenaar:'Quadrum Capital / Jan Aalberts',            activiteit:'Module-ontwerper en -maker',               lat:51.428, lon:5.484  },
+  { naam:'Sioux',                  type:'Chipdienstverlener',           provincie:'Noord-Brabant', asml:true,  omzet:83,    winst:3,     jaar:2023, werknemers:553,   adres:'Eindhoven',     opgericht:1996, ubo:'NL',        eigenaar:'Oprichters',                                activiteit:'Inspectiesystemen / dienstverlening',      lat:51.458, lon:5.466  },
+  { naam:'Itility',                type:'Chipdienstverlener',           provincie:'Noord-Brabant', asml:true,  omzet:48,    winst:10,    jaar:2023, werknemers:250,   adres:'Eindhoven',     opgericht:2006, ubo:'NL',        eigenaar:'Oprichter',                                 activiteit:'IT-consultants',                           lat:51.464, lon:5.458  },
+  { naam:'Technolution',           type:'Chipdienstverlener',           provincie:'Zuid-Holland',  asml:false, omzet:30,    winst:7,     jaar:2023, werknemers:250,   adres:'Gouda',         opgericht:1987, ubo:'NL',        eigenaar:'Oprichters',                                activiteit:'Software en systeemintegratie',             lat:52.017, lon:4.709  },
+  { naam:'Salland Engineering',    type:'Chipdienstverlener',           provincie:'Overijssel',    asml:false, omzet:null,  winst:null,  jaar:null, werknemers:90,    adres:'Zwolle',        opgericht:1992, ubo:'Duitsland', eigenaar:'Advantest Europe',                          activiteit:'Chipdienstverlener',                       lat:52.515, lon:6.100  },
+  { naam:'SoS',                    type:'Chipdienstverlener',           provincie:'Gelderland',    asml:true,  omzet:null,  winst:null,  jaar:null, werknemers:null,  adres:'Nijmegen',      opgericht:2004, ubo:'NL',        eigenaar:'Oprichter (Peter Sakko)',                    activiteit:'Onderdelengroothandel',                    lat:51.855, lon:5.862  },
+  { naam:'Nearfield Instruments',  type:'Chipdienstverlener',           provincie:'Zuid-Holland',  asml:false, omzet:null,  winst:-20,   jaar:2023, werknemers:129,   adres:'Rotterdam',     opgericht:2016, ubo:null,        eigenaar:'Durfinvesteerders (TNO, InvestNL, Samsung)', activiteit:'Procescontroleurs',                        lat:51.922, lon:4.479  },
+  { naam:'Axelera AI',             type:'Chipontwikkelaar',             provincie:'Noord-Brabant', asml:false, omzet:null,  winst:null,  jaar:null, werknemers:180,   adres:'Eindhoven',     opgericht:2021, ubo:'NL',        eigenaar:'Durfinvesteerders (InvestNL, EIC, Samsung)', activiteit:'AI-chipontwerper',                         lat:51.471, lon:5.451  },
+  { naam:'Smart Photonics',        type:'Chipfabrikant',                provincie:'Noord-Brabant', asml:false, omzet:1,     winst:-29,   jaar:2023, werknemers:167,   adres:'Eindhoven',     opgericht:2012, ubo:'NL',        eigenaar:'Durfinvesteerders (ASML, NXP, VDL)',         activiteit:'Fotonische chipmaker',                     lat:51.447, lon:5.490  },
+  { naam:'Effect Photonics',       type:'Chipontwikkelaar',             provincie:'Noord-Brabant', asml:false, omzet:null,  winst:null,  jaar:null, werknemers:62,    adres:'Eindhoven',     opgericht:2010, ubo:'NL',        eigenaar:'Durfinvesteerders (Innovation Industries)', activiteit:'Communicatiechips',                        lat:51.455, lon:5.474  },
+  { naam:'Quantware',              type:'Chipontwikkelaar',             provincie:'Zuid-Holland',  asml:false, omzet:null,  winst:null,  jaar:null, werknemers:59,    adres:'Delft',         opgericht:2021, ubo:'NL',        eigenaar:'Durfinvesteerders (InvestNL, EIC)',          activiteit:'Quantumchip-ontwikkelaar en -fabrikant',   lat:52.011, lon:4.354  },
+  { naam:'Innatera Nanosystems',   type:'Chipontwikkelaar',             provincie:'Zuid-Holland',  asml:false, omzet:null,  winst:null,  jaar:null, werknemers:43,    adres:'Rijswijk',      opgericht:2018, ubo:'NL',        eigenaar:'Durfinvesteerders (InvestNL, EIC)',          activiteit:'AI sensorchips',                           lat:52.040, lon:4.322  },
+  { naam:'Keiron',                 type:'Chipmachine(onderdelen)maker', provincie:'Noord-Brabant', asml:false, omzet:null,  winst:null,  jaar:null, werknemers:null,  adres:'Eindhoven',     opgericht:2019, ubo:'NL',        eigenaar:'Durfinvesteerders (TNO, DeeptechXL)',        activiteit:'Chipprinter',                              lat:51.462, lon:5.480  },
+  { naam:'BitFury',                type:'Chipontwikkelaar',             provincie:'Noord-Holland', asml:false, omzet:27,    winst:null,  jaar:2022, werknemers:null,  adres:'Amsterdam',     opgericht:2011, ubo:'NL',        eigenaar:'Oprichter (Valerijs Vavilovs)',              activiteit:'Bitcoinminingchip',                        lat:52.382, lon:4.910  },
+  { naam:'Boschman',               type:'Chipmachine(onderdelen)maker', provincie:'Gelderland',    asml:false, omzet:20,    winst:1,     jaar:2023, werknemers:108,   adres:'Duiven',        opgericht:1987, ubo:'NL',        eigenaar:'Familiebedrijf (Boschman)',                  activiteit:'Chipverpakkingen',                         lat:51.938, lon:6.027  },
+  { naam:'Tempress',               type:'Chipmachine(onderdelen)maker', provincie:'Gelderland',    asml:false, omzet:9,     winst:1,     jaar:2024, werknemers:null,  adres:'Vaassen',       opgericht:1967, ubo:'NL',        eigenaar:'Investeringsfonds (Innovation Industries)', activiteit:'Chipdepositie en diffusie',                lat:52.279, lon:5.968  },
+  { naam:'Trymax',                 type:'Chipmachine(onderdelen)maker', provincie:'Gelderland',    asml:false, omzet:19,    winst:3,     jaar:2023, werknemers:null,  adres:'Nijmegen',      opgericht:2003, ubo:'Singapore', eigenaar:'Accuron Technologies (Temasek)',             activiteit:'Plasmaspecialist',                         lat:51.836, lon:5.841  },
+  { naam:'Itec',                   type:'Chipmachine(onderdelen)maker', provincie:'Gelderland',    asml:true,  omzet:null,  winst:null,  jaar:null, werknemers:250,   adres:'Nijmegen',      opgericht:2021, ubo:'China',     eigenaar:'Branchegenoot (Nexperia)',                   activiteit:'Chipbindermachines',                       lat:51.849, lon:5.867  },
+  { naam:'Lam Research NL',        type:'Chipmachine(onderdelen)maker', provincie:'Overijssel',    asml:false, omzet:null,  winst:null,  jaar:null, werknemers:null,  adres:'Enschede',      opgericht:null, ubo:'VS',        eigenaar:'Beursgenoteerd (VS)',                        activiteit:'Chipmachines (R&D locatie)',               lat:52.214, lon:6.884  },
+  { naam:'Powertrim',              type:'Chipmachine(onderdelen)maker', provincie:'Gelderland',    asml:false, omzet:null,  winst:null,  jaar:null, werknemers:null,  adres:"'s-Heerenberg", opgericht:2020, ubo:'NL',        eigenaar:'Oprichters',                                activiteit:'Chipknipspecialist',      lat:51.874, lon:6.240  },
+  { naam:'Sempro',                 type:'Chipmachine(onderdelen)maker', provincie:'Gelderland',    asml:false, omzet:null,  winst:null,  jaar:null, werknemers:17,    adres:'Nijmegen',      opgericht:2003, ubo:'NL',        eigenaar:'Onbekend',                                  activiteit:'Chipverpakkingen',        lat:51.843, lon:5.853  },
+  { naam:'Be Precision Technology',type:'Chipmachine(onderdelen)maker', provincie:'Gelderland',    asml:false, omzet:null,  winst:null,  jaar:null, werknemers:null,  adres:'Nunspeet',      opgericht:null, ubo:'NL',        eigenaar:'Oprichter',                                 activiteit:'Chipmachineonderdelen',  lat:52.374, lon:5.777  },
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let DATA          = [];
+let MAX_OMZET     = 1;
+let MAX_WERKNEMERS = 1;
+const ST = { grouping: 'type', zoomLevel: '', selectedCompany: null, ts: 0, metric: 'omzet', view: 'treemap', mapProvince: null };
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function eigenaarType(v) {
+  const norm = String(v ?? '').trim();
+  if (!norm || norm === '?' || norm === 'Onbekend') return 'Onbekend';
+  const s = norm.toLowerCase();
+  if (s.includes('beursgenoteerd'))                                               return 'Beursgenoteerd';
+  if (['durfinvesteerder','investnl','eic','deeptechxl','innovation industries','tno','samsung'].some(k => s.includes(k))) return 'Durfinvesteerders';
+  if (['familie','familiebedrijf','wintermans','leegte','boschman'].some(k => s.includes(k))) return 'Familiebedrijf';
+  if (s.includes('oprichter'))                                                    return 'Oprichters';
+  if (['hal investment','npm capital','quadrum','investeringsfonds'].some(k => s.includes(k))) return 'Investeringsfonds';
+  if (s.includes('branchegenoot'))                                                return 'Branchegenoot';
+  if (['wingtech','advantest','accuron','temasek'].some(k => s.includes(k)))      return 'Buitenlands bedrijf';
+  return 'Overig';
+}
+
+function toNum(v) {
+  if (v == null || v === '' || v === 'null' || v === 'NULL') return null;
+  const n = Number(v);
+  return isNaN(n) ? null : n;
+}
+
+function fmtBedrag(v) {
+  return v != null ? `€\u202f${Number(v).toLocaleString('nl-NL')}\u202fmln` : '—';
+}
+
+function verwerk(r) {
+  const omzet      = toNum(r.omzet);
+  const werknemers = toNum(r.werknemers);
+  return {
+    ...r,
+    omzet,
+    winst:         toNum(r.winst),
+    werknemers,
+    opgericht:     toNum(r.opgericht),
+    asml:          [true, 'true', 'TRUE', 1, '1', 'ja', 'Ja'].includes(r.asml),
+    eigenaar_type: eigenaarType(r.eigenaar),
+    omzet_display:      omzet      != null ? omzet      : 0.5,
+    werknemers_display: werknemers != null ? werknemers : 0.5,
+  };
+}
+
+// ── Data laden via Google Sheets ──────────────────────────────────────────────
+function laadSheet() {
+  return new Promise((resolve, reject) => {
+    Papa.parse(SHEET_URL, {
+      download: true, header: true, dynamicTyping: true, skipEmptyLines: true,
+      complete: r => resolve(
+        r.data.filter(d => d.naam && String(d.naam).trim()).map(verwerk)
+      ),
+      error: reject,
+    });
+  });
+}
+
+// ── Treemap trace bouwen ──────────────────────────────────────────────────────
+function maakTrace(grouping) {
+  const colors    = KLEUREN[grouping];
+  const cats      = [...new Set(DATA.map(d => d[grouping]).filter(Boolean))].sort();
+  const veld      = ST.metric === 'omzet' ? 'omzet_display' : 'werknemers_display';
+  const hoverTmpl = '<extra></extra>';
+  const catSums = {};
+  for (const d of DATA) {
+    const key = d[grouping];
+    if (key) catSums[key] = (catSums[key] ?? 0) + d[veld];
+  }
+
+  const ids = [], labels = [], parents = [], values = [], mc = [];
+  for (const cat of cats) {
+    ids.push(cat); labels.push(cat); parents.push('');
+    values.push(catSums[cat] ?? 0); mc.push(colors[cat] || '#888');
+  }
+  for (const row of DATA) {
+    if (!row[grouping]) continue;
+    ids.push(row.naam); labels.push(row.naam); parents.push(row[grouping]);
+    values.push(row[veld]); mc.push(colors[row[grouping]] || '#888');
+  }
+  return {
+    type: 'treemap', ids, labels, parents, values, branchvalues: 'total',
+    marker: { colors: mc },
+    textinfo: 'label',
+    hovertemplate: hoverTmpl,
+    textfont: { family: 'Arial, sans-serif' },
+    maxdepth: 2,
+  };
+}
+
+function maakLayout(ts) {
+  return {
+    paper_bgcolor: '#fff', showlegend: false,
+    margin: { l: 0, r: 0, t: 0, b: 0 },
+    font: { family: 'Arial, sans-serif', color: '#1c1c1c' },
+    uirevision: String(ts),
+  };
+}
+
+// ── Treemap initialiseren (inclusief frames voor animatie) ────────────────────
+function initTreemap() {
+  const frames = ['type', 'provincie', 'eigenaar_type'].map(g => ({
+    name: g, data: [maakTrace(g)],
+  }));
+
+  Plotly.newPlot('treemap', [maakTrace(ST.grouping)], maakLayout(0),
+    { displayModeBar: false, responsive: true }
+  ).then(gd => {
+    Plotly.addFrames(gd, frames);
+    gd.on('plotly_click', onTreemapKlik);
+  });
+}
+
+function updateTreemap() {
+  Plotly.react('treemap', [maakTrace(ST.grouping)], maakLayout(ST.ts));
+}
+
+// ── Kaart (Leaflet + GeoJSON provincies) ─────────────────────────────────────
+const NL_BOUNDS    = [[50.75, 3.35], [53.55, 7.25]];
+let nlGeoJSON      = null;
+let provBounds     = {};
+let leafletMap     = null;
+let provLayer      = null;
+let bubbleGroup    = null;
+let mapInitialized = false;
+
+async function laadNLGeoJSON() {
+  try {
+    const r = await fetch('https://cartomap.github.io/nl/wgs84/provincie_2024.geojson');
+    nlGeoJSON = await r.json();
+    for (const f of nlGeoJSON.features) {
+      const name = f.properties.statnaam;
+      if (name) provBounds[name] = L.geoJSON(f).getBounds();
+    }
+  } catch (e) {
+    console.warn('NL GeoJSON laden mislukt:', e);
+  }
+}
+
+function provStyle(feature) {
+  const selected = ST.mapProvince === feature.properties.statnaam;
+  return {
+    fillColor:   selected ? '#d4cfc6' : '#ece8e0',
+    fillOpacity: 1,
+    color:       '#bab5ac',
+    weight:      selected ? 2 : 1,
+  };
+}
+
+function hertekenBubbles() {
+  if (!bubbleGroup) return;
+  bubbleGroup.clearLayers();
+
+  const colors  = KLEUREN[ST.grouping];
+  const isOmzet = ST.metric === 'omzet';
+  const veld    = isOmzet ? 'omzet' : 'werknemers';
+  const rijen   = DATA.filter(d => d.lat != null && d.lon != null);
+
+  // Gebruik altijd globale max zodat bollen niet herschalen bij inzoomen op een provincie
+  const maxVal    = isOmzet ? MAX_OMZET : MAX_WERKNEMERS;
+
+  for (const d of rijen) {
+    const hasVal = d[veld] != null;
+    const radius = hasVal ? 5 + Math.sqrt(d[veld] / maxVal) * 33 : 4;
+    const color  = colors[d[ST.grouping]] || '#888';
+    const valStr = isOmzet ? fmtBedrag(d.omzet) : fmtWerknemers(d.werknemers);
+
+    L.circleMarker([d.lat, d.lon], {
+      radius, fillColor: color, color: '#fff', weight: 1,
+      fillOpacity: hasVal ? 0.85 : 0.45,
+    })
+    .bindTooltip(`<b>${d.naam}</b><br>${valStr}`, { sticky: false })
+    .on('click', e => {
+      L.DomEvent.stopPropagation(e);
+      ST.selectedCompany = ST.selectedCompany === d.naam ? null : d.naam;
+      renderBarList();
+      if (ST.selectedCompany) {
+        requestAnimationFrame(() => {
+          const row = document.querySelector(`.b-row[data-naam="${d.naam.replace(/"/g, '&quot;')}"]`);
+          if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+      }
+    })
+    .addTo(bubbleGroup);
+  }
+}
+
+function onMapProvincieKlik(naam) {
+  ST.mapProvince     = ST.mapProvince === naam ? null : naam;
+  ST.selectedCompany = null;
+  if (provLayer) provLayer.setStyle(provStyle);
+  hertekenBubbles();
+  if (ST.mapProvince && provBounds[ST.mapProvince]) {
+    leafletMap.fitBounds(provBounds[ST.mapProvince], { padding: [30, 30] });
+  } else {
+    leafletMap.fitBounds(NL_BOUNDS, { padding: [20, 20] });
+  }
+  renderBarList();
+}
+
+async function updateMap() {
+  if (!nlGeoJSON) await laadNLGeoJSON();
+
+  if (!mapInitialized) {
+    leafletMap = L.map('map', {
+      zoomControl: false, attributionControl: false,
+      dragging: false, scrollWheelZoom: false,
+      doubleClickZoom: false, touchZoom: false, keyboard: false,
+    }).setView([52.3, 5.3], 7);
+
+    if (nlGeoJSON) {
+      provLayer = L.geoJSON(nlGeoJSON, {
+        style: provStyle,
+        onEachFeature: (f, layer) => {
+          const naam = f.properties.statnaam;
+          layer.bindTooltip(naam, { sticky: true, className: 'prov-tip' });
+          layer.on('click', () => onMapProvincieKlik(naam));
+          layer.on('mouseover', function () { this.setStyle({ weight: 2, color: '#888' }); });
+          layer.on('mouseout',  function () { provLayer.resetStyle(this); });
+        },
+      }).addTo(leafletMap);
+    }
+
+    bubbleGroup = L.layerGroup().addTo(leafletMap);
+    mapInitialized = true;
+  } else {
+    if (provLayer) provLayer.setStyle(provStyle);
+  }
+
+  hertekenBubbles();
+}
+
+// ── Treemap klik-handler ──────────────────────────────────────────────────────
+function onTreemapKlik(ev) {
+  if (!ev?.points?.length) return;
+  const pt     = ev.points[0];
+  const id     = String(pt.id     ?? '');
+  const parent = String(pt.parent ?? '');
+  const known  = new Set(DATA.map(d => d[ST.grouping]).filter(Boolean));
+
+  if (known.has(parent)) {
+    // Bedrijfstegel: selecteer in barlijst (geen zoom) + scroll ernaar toe
+    ST.zoomLevel       = parent;
+    ST.selectedCompany = id;
+    renderBarList();
+    requestAnimationFrame(() => {
+      const row = document.querySelector(`.b-row[data-naam="${id.replace(/"/g, '&quot;')}"]`);
+      if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  } else if (known.has(id)) {
+    // Categorietegel: toggle filter
+    ST.zoomLevel       = ST.zoomLevel === id ? '' : id;
+    ST.selectedCompany = null;
+    renderBarList();
+  }
+}
+
+// ── Legenda ───────────────────────────────────────────────────────────────────
+function renderLegend() {
+  const colors  = KLEUREN[ST.grouping];
+  const aanwezig = new Set(DATA.map(d => d[ST.grouping]));
+  document.getElementById('legend').innerHTML = Object.entries(colors)
+    .filter(([k]) => aanwezig.has(k))
+    .map(([k, c]) =>
+      `<div class="l-item">
+         <div class="l-dot" style="background:${c}"></div>
+         <span class="l-label">${k}</span>
+       </div>`
+    ).join('');
+}
+
+// ── Bar-lijst ─────────────────────────────────────────────────────────────────
+function fmtWerknemers(v) {
+  return v != null ? `${Number(v).toLocaleString('nl-NL')} fte` : '—';
+}
+
+function renderBarList(animate = false) {
+  const container  = document.getElementById('bar-list');
+  const colors     = KLEUREN[ST.grouping];
+  const isOmzet    = ST.metric === 'omzet';
+  const sortField  = isOmzet ? 'omzet' : 'werknemers';
+  const maxVal     = isOmzet ? MAX_OMZET : MAX_WERKNEMERS;
+
+  // Snapshot positions for FLIP animation
+  const firstPos = {};
+  if (animate) {
+    container.querySelectorAll('.b-row[data-naam]').forEach(el => {
+      firstPos[el.dataset.naam] = el.getBoundingClientRect().top;
+    });
+  }
+
+  // Filter: kaart filtert op provincie, treemap op zoomLevel
+  let rijen = (ST.view === 'kaart' && ST.mapProvince)
+    ? DATA.filter(d => d.provincie === ST.mapProvince)
+    : DATA.filter(d => !ST.zoomLevel || d[ST.grouping] === ST.zoomLevel);
+  rijen = [
+    ...rijen.filter(d => d[sortField] != null).sort((a, b) => b[sortField] - a[sortField]),
+    ...rijen.filter(d => d[sortField] == null),
+  ];
+
+  container.innerHTML = rijen.map((row, i) => {
+    const color   = colors[row[ST.grouping]] || '#888';
+    const hasVal  = row[sortField] != null;
+    const pct     = hasVal ? (row[sortField] / maxVal * 100).toFixed(2) : 0;
+    const valStr  = isOmzet ? fmtBedrag(row.omzet) : fmtWerknemers(row.werknemers);
+    const open    = row.naam === ST.selectedCompany;
+
+    const velden = [
+      ['Categorie',        row.type],
+      ['Provincie',        row.provincie],
+      ['Activiteit',       row.activiteit],
+      ['Adres',            row.adres],
+      ['Omzet',            row.omzet != null ? fmtBedrag(row.omzet) : null],
+      ['Winst',            row.winst     != null ? fmtBedrag(row.winst) : null],
+      ['Werknemers',       row.werknemers != null ? Number(row.werknemers).toLocaleString('nl-NL') : null],
+      ['ASML-leverancier', row.asml ? 'Ja' : 'Nee'],
+      ['Eigenaar',         row.eigenaar],
+      ['UBO',              row.ubo],
+      ['Opgericht',        row.opgericht != null ? String(row.opgericht) : null],
+    ].filter(([, v]) => v != null && String(v).trim() !== '');
+
+    return `
+      <div class="b-row" data-naam="${row.naam.replace(/"/g, '&quot;')}">
+        <div class="b-inner">
+          <span class="b-num">${i + 1}.</span>
+          <div class="b-info">
+            <div class="b-name">${row.naam}</div>
+            <div class="b-sub">${row.activiteit || ''}</div>
+          </div>
+          <div class="b-bar">
+            <div class="b-fill" style="width:${pct}%;background:${hasVal ? color : '#ddd'}"></div>
+          </div>
+          <div class="b-val" style="color:${hasVal ? '#1c1c1c' : '#888'}">${valStr}</div>
+          <button class="b-btn" style="color:${color}" data-naam="${row.naam}">${open ? '−' : '+'}</button>
+        </div>
+        <div class="detail ${open ? 'open' : ''}" style="border-left-color:${color}">
+          <div class="d-head" style="color:${color}">${row.naam}</div>
+          ${velden.map(([k, v]) => `<div class="d-row"><span class="d-key">${k}: </span>${v}</div>`).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
+  // FLIP: animate rows that moved position
+  if (animate && Object.keys(firstPos).length) {
+    container.querySelectorAll('.b-row[data-naam]').forEach(el => {
+      const first = firstPos[el.dataset.naam];
+      if (first == null) return;
+      const delta = first - el.getBoundingClientRect().top;
+      if (Math.abs(delta) < 1) return;
+      el.style.transform = `translateY(${delta}px)`;
+      el.style.transition = 'none';
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        el.style.transition = 'transform 0.38s ease';
+        el.style.transform  = '';
+      }));
+    });
+  }
+
+  const filterTxt = (ST.view === 'kaart' && ST.mapProvince)
+    ? `Provincie: ${ST.mapProvince}`
+    : (ST.zoomLevel ? `Gefilterd op ${FILTER_LABELS[ST.grouping]}: ${ST.zoomLevel}` : 'Alle bedrijven');
+  document.getElementById('filter-label').textContent = filterTxt;
+
+  const zoomActive = ST.view === 'kaart' ? !!ST.mapProvince : !!ST.zoomLevel;
+  document.getElementById('zoom-out').classList.toggle('active', zoomActive);
+}
+
+// ── CSV download ──────────────────────────────────────────────────────────────
+function downloadCSV() {
+  const isOmzet   = ST.metric === 'omzet';
+  const sortField = isOmzet ? 'omzet' : 'werknemers';
+  let rijen = (ST.view === 'kaart' && ST.mapProvince)
+    ? DATA.filter(d => d.provincie === ST.mapProvince)
+    : DATA.filter(d => !ST.zoomLevel || d[ST.grouping] === ST.zoomLevel);
+  rijen = [
+    ...rijen.filter(d => d[sortField] != null).sort((a, b) => b[sortField] - a[sortField]),
+    ...rijen.filter(d => d[sortField] == null),
+  ];
+
+  const cols = ['naam','type','provincie','asml','omzet','winst','jaar','werknemers','adres','opgericht','ubo','eigenaar','activiteit'];
+  const escape = v => {
+    if (v == null) return '';
+    const s = String(v);
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csv = [cols.join(','), ...rijen.map(r => cols.map(c => escape(r[c])).join(','))].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+  a.download = 'chipindustrie-selectie.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ── Event listeners ───────────────────────────────────────────────────────────
+function koppelListeners() {
+  // Expand/collapse via event delegation op de container
+  document.getElementById('bar-list').addEventListener('click', e => {
+    const btn = e.target.closest('.b-btn');
+    if (!btn) return;
+    const panel = btn.closest('.b-row').querySelector('.detail');
+    const open  = panel.classList.toggle('open');
+    btn.textContent = open ? '−' : '+';
+  });
+
+  // Reset knop + zoom-out pijl
+  const resetFn = () => {
+    ST.ts = Date.now(); ST.zoomLevel = ''; ST.selectedCompany = null;
+    if (ST.view === 'kaart') {
+      ST.mapProvince = null;
+      if (provLayer) provLayer.setStyle(provStyle);
+      hertekenBubbles();
+      if (leafletMap) leafletMap.setView([52.3, 5.3], 7);
+    } else {
+      updateTreemap();
+    }
+    renderBarList();
+  };
+  document.getElementById('reset').addEventListener('click', resetFn);
+  document.getElementById('zoom-out').addEventListener('click', resetFn);
+  document.getElementById('download').addEventListener('click', downloadCSV);
+
+  // Metric-toggle (omzet / werknemers)
+  document.querySelectorAll('.m-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const m = btn.dataset.m;
+      if (m === ST.metric) return;
+      ST.metric = m; ST.ts = Date.now();
+      document.querySelectorAll('.m-tab').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      if (ST.view === 'kaart') {
+        updateMap();
+      } else {
+        // Frames herbouwen met nieuwe metric, daarna animeren (zelfde als grouping-wissel)
+        const frames = ['type', 'provincie', 'eigenaar_type'].map(g => ({ name: g, data: [maakTrace(g)] }));
+        const gd = document.getElementById('treemap');
+        if (gd?._fullData?.length) {
+          Plotly.addFrames(gd, frames).then(() => {
+            Plotly.animate('treemap', [ST.grouping], {
+              transition: { duration: 600, easing: 'cubic-in-out' },
+              frame:      { duration: 600, redraw: false },
+            });
+          });
+        } else {
+          Plotly.react('treemap', [maakTrace(ST.grouping)], maakLayout(ST.ts));
+        }
+      }
+      renderBarList(true);
+    });
+  });
+
+  // View-toggle (Treemap | Kaart)
+  document.querySelectorAll('.v-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const v = btn.dataset.v;
+      if (v === ST.view) return;
+      ST.view = v;
+      document.querySelectorAll('.v-tab').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      const showTreemap = v === 'treemap';
+      document.getElementById('treemap').style.display = showTreemap ? 'block' : 'none';
+      document.getElementById('map').style.display     = showTreemap ? 'none' : 'block';
+      ST.zoomLevel = ''; ST.selectedCompany = null; ST.mapProvince = null; ST.ts = Date.now();
+      if (showTreemap) {
+        updateTreemap();
+      } else {
+        updateMap().then(() => {
+          if (leafletMap) leafletMap.setView([52.3, 5.3], 7);
+          if (provLayer) provLayer.setStyle(provStyle);
+          hertekenBubbles();
+        });
+      }
+      renderBarList();
+    });
+  });
+
+  // Grouping-tabs
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const g = btn.dataset.g;
+      if (g === ST.grouping) return;
+
+      ST.grouping = g; ST.zoomLevel = ''; ST.selectedCompany = null;
+      document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+
+      if (ST.view === 'kaart') {
+        updateMap();
+      } else {
+        // Animeer treemap naar het nieuwe grouping-frame (direct via Plotly.js)
+        const gd = document.getElementById('treemap');
+        if (gd?._fullData?.length) {
+          Plotly.animate('treemap', [g], {
+            transition: { duration: 600, easing: 'cubic-in-out' },
+            frame:      { duration: 600, redraw: false },
+          });
+        }
+      }
+
+      renderLegend();
+      renderBarList();
+    });
+  });
+}
+
+// ── Initialisatie ─────────────────────────────────────────────────────────────
+async function init() {
+  let rijen = null;
+
+  if (!SHEET_URL.startsWith('VERVANG')) {
+    try {
+      rijen = await laadSheet();
+    } catch (err) {
+      console.warn('Google Sheets laden mislukt, gebruik fallbackdata:', err);
+    }
+  }
+
+  DATA          = rijen?.length ? rijen : FALLBACK.map(verwerk);
+  MAX_OMZET     = Math.max(...DATA.map(d => d.omzet).filter(v => v != null), 1);
+  MAX_WERKNEMERS = Math.max(...DATA.map(d => d.werknemers).filter(v => v != null), 1);
+
+  document.getElementById('wrap').innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; flex-wrap:wrap; gap:6px;">
+      <div class="tabs" style="margin-bottom:0">
+        <button class="tab on" data-g="type">Type bedrijf</button>
+        <button class="tab"    data-g="eigenaar_type">Eigenaar</button>
+      </div>
+      <div class="v-tabs">
+        <button class="v-tab on" data-v="treemap" title="Treemap">
+          <svg viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1" y="1" width="11" height="11" rx="1"/>
+            <rect x="14" y="1" width="5"  height="5"  rx="1"/>
+            <rect x="14" y="8" width="5"  height="4"  rx="1"/>
+            <rect x="1"  y="14" width="5" height="5"  rx="1"/>
+            <rect x="8"  y="14" width="11" height="5" rx="1"/>
+          </svg>
+        </button>
+        <button class="v-tab" data-v="kaart" title="Kaart">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2,5 L7,3 L13,5 L18,3 L18,15 L13,17 L7,15 L2,17 Z"/>
+            <line x1="7" y1="3" x2="7" y2="15"/>
+            <line x1="13" y1="5" x2="13" y2="17"/>
+          </svg>
+        </button>
+      </div>
+      <div class="m-tabs">
+        <button class="m-tab on" data-m="omzet">Omzet</button>
+        <button class="m-tab"    data-m="werknemers">Werknemers</button>
+      </div>
+    </div>
+    <div id="tm-wrap">
+      <div id="treemap"></div>
+      <div id="map"></div>
+      <button id="zoom-out" title="Terug naar overzicht">
+        <svg viewBox="0 0 16 16" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3,10 8,5 13,10"/>
+        </svg>
+      </button>
+    </div>
+    <div id="legend"></div>
+    <div id="bar-hdr">
+      <span id="filter-label"></span>
+      <div>
+        <button id="reset">Toon alles</button>
+        <button id="download">↓ Download CSV</button>
+      </div>
+    </div>
+    <div id="bar-list"></div>`;
+
+  initTreemap();
+  renderLegend();
+  renderBarList();
+  koppelListeners();
+
+  if (SHEET_URL.startsWith('VERVANG')) {
+    console.info('Tip: stel SHEET_URL in om data uit Google Sheets te laden.');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
