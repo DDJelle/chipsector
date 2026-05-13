@@ -87,12 +87,20 @@
                 flex-shrink: 0; text-align: center; border: 1px solid; }
 
     /* Detail paneel */
-    .detail      { display: none; background: #f5f4f0; padding: 14px 16px;
-                   margin: 0 0 10px 38px; border-left: 4px solid; border-radius: 0 4px 4px 0; }
-    .detail.open { display: block; }
-    .d-head      { font-family: Arial; font-weight: bold; font-size: 15px; margin-bottom: 10px; }
-    .d-row       { margin: 3px 0; font-family: Arial; font-size: 13px; }
-    .d-key       { color: #888; min-width: 120px; display: inline-block; }
+    .detail        { display: none; background: #f5f4f0; padding: 14px 16px 16px;
+                     margin: 0 0 10px 38px; border-left: 4px solid; border-radius: 0 4px 4px 0; }
+    .detail.open   { display: block; }
+    .d-head        { font-family: Arial; font-weight: bold; font-size: 15px; margin-bottom: 10px; }
+    .d-stats       { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .d-stat        { background: #fff; border: 1px solid #e0ddd6; padding: 7px 12px;
+                     border-radius: 2px; min-width: 90px; }
+    .d-stat-lbl    { display: block; font-family: Arial; font-size: 10px; color: #888;
+                     letter-spacing: .5px; text-transform: uppercase; margin-bottom: 2px; }
+    .d-stat-val    { display: block; font-family: Arial; font-weight: bold; font-size: 13px; color: #1c1c1c; }
+    .d-divider     { border: none; border-top: 1px solid #e0ddd6; margin: 10px 0; }
+    .d-row         { display: flex; gap: 8px; margin: 4px 0; font-family: Arial; font-size: 13px; line-height: 1.4; }
+    .d-key         { color: #888; min-width: 120px; flex-shrink: 0; font-size: 12px; padding-top: 1px; }
+    .d-val         { color: #1c1c1c; }
 
     /* Leaflet kaart */
     .leaflet-container { background: #ddeef5; cursor: default !important; }
@@ -122,6 +130,37 @@
     /* Footer */
     #footer  { text-align: center; padding: 24px; font-family: Arial; font-size: 12px;
                color: #888; border-top: 1px solid #e0ddd6; }
+
+    /* Toelichting modal */
+    #toel-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45);
+                    z-index:10000; overflow-y:auto; padding:40px 16px 60px; }
+    #toel-overlay.open { display:block; }
+    #toel-panel   { background:#fff; max-width:680px; margin:0 auto; padding:32px 36px;
+                    border-radius:2px; position:relative; }
+    #toel-close   { position:absolute; top:20px; right:20px; background:none;
+                    border:1px solid #bbb; color:#888; font-family:Arial;
+                    font-size:11px; padding:5px 12px; cursor:pointer; }
+    #toel-close:hover { border-color:#444; color:#444; }
+    .toel-h1      { font-family:Georgia,serif; font-size:20px; color:#1a3a5c;
+                    margin:0 0 4px; }
+    .toel-sub     { font-family:Arial; font-size:12px; color:#888; margin:0 0 24px;
+                    letter-spacing:.3px; }
+    .toel-section { margin-bottom:28px; }
+    .toel-section-title { font-family:Arial; font-size:11px; letter-spacing:2px;
+                          text-transform:uppercase; color:#888; padding-bottom:6px;
+                          border-bottom:2px solid #e8640c; display:inline-block;
+                          margin-bottom:12px; }
+    .toel-table   { width:100%; border-collapse:collapse; font-family:Arial; font-size:13px; }
+    .toel-table tr { border-bottom:1px solid #f0ede8; }
+    .toel-table td { padding:9px 0; vertical-align:top; line-height:1.5; }
+    .toel-table td:first-child { color:#666; min-width:160px; padding-right:20px;
+                                 font-size:12px; font-weight:bold; }
+    .toel-legal   { font-family:Arial; font-size:12px; color:#888; line-height:1.7;
+                    border-top:1px solid #e0ddd6; padding-top:16px; margin-top:4px; }
+    .toel-legal li { margin-bottom:4px; }
+    #toel-btn     { background:none; border:1px solid #888; color:#888; font-family:Arial;
+                    font-size:11px; padding:5px 12px; cursor:pointer; }
+    #toel-btn:hover { border-color:#1a3a5c; color:#1a3a5c; }
   </style>
 </head>
 <body>
@@ -131,31 +170,101 @@
 </div>
 <div id="footer">Brondata: intern onderzoeksbestand chipindustrie NL · Dashboard: Digital Digging</div>
 
+<div id="toel-overlay">
+  <div id="toel-panel">
+    <button id="toel-close">✕ Sluiten</button>
+    <p class="toel-h1">Over deze lijst</p>
+    <p class="toel-sub">Lees dit goed door voordat je met de lijst aan de slag gaat</p>
+
+    <div class="toel-section">
+      <div class="toel-section-title">Algemeen</div>
+      <table class="toel-table">
+        <tr><td>Taal</td><td>De database is in het Nederlands.</td></tr>
+        <tr><td>Actualiteit</td><td>De gegevens zijn in april 2026 verzameld, op basis van de toen meest recent bekende jaarverslagen.</td></tr>
+        <tr><td>Weergave</td><td>De omzet-, winst- en personeelscijfers zijn op twee manieren weergegeven: per jaar (2025, 2024, 2023) en als 'laatst beschikbaar jaar'. Dat laatste kan worden gebruikt om bedrijven te ranken op hun meest recente cijfers.</td></tr>
+        <tr><td>Scope</td><td>Hollands Welvaren heeft geprobeerd alle bedrijven die puur actief zijn in de chipsector, of daar substantiële activiteiten in ondernemen, op te nemen. Volledigheid kan niet worden gegarandeerd.</td></tr>
+        <tr><td>Buitenlandse bedrijven</td><td>Bedrijven komen in aanmerking als zij overwegend Nederlands zijn. Buitenlandse bedrijven met een filiaal hier (Bosch bijvoorbeeld) komen niet in aanmerking. Nederlandse chipbedrijven die zijn overgenomen door een buitenlandse branchegenoot wel. Soms is er een grijs gebied (zoals bij Frencken), waarbij Hollands Welvaren naar eigen inzicht kiest.</td></tr>
+        <tr><td>Bronnen</td><td>De meeste informatie is afkomstig uit jaarverslagen bij de Kamer van Koophandel of op bedrijfswebsites. Vooral bij kleinere bedrijven zijn jaarverslagen summier; in diverse gevallen is extra informatie rechtstreeks bij bedrijven opgevraagd.</td></tr>
+      </table>
+    </div>
+
+    <div class="toel-section">
+      <div class="toel-section-title">Cijfers</div>
+      <table class="toel-table">
+        <tr><td>Omzet</td><td>Waar bekend is enkel de omzet genomen die daadwerkelijk uit de chipindustrie voortkomt. Bij ASML is dat de totale omzet; bij NTS Group slechts een deel van de concernomzet.</td></tr>
+        <tr><td>Winst</td><td>Het gaat om de winst vóór belasting. Van bedrijven die ook in niet-chipsectoren actief zijn, is de winst vaak niet uitgesplitst en ontbreekt het winstcijfer in deze lijst.</td></tr>
+        <tr><td>Personeel</td><td>Cijfers komen in principe uit jaarverslagen, maar soms geven die geen goed beeld (holding-cijfers, wisseling van bron per jaar). Een zichtbare stijging of daling kan dan meer zeggen over de wijziging in dataverzameling dan over de daadwerkelijke groei of krimp.</td></tr>
+        <tr><td>Opmerkingen</td><td>In de kolom 'opmerkingen' per bedrijf staan technische verduidelijkingen, bijvoorbeeld over hoe een omzetcijfer tot stand is gekomen.</td></tr>
+      </table>
+    </div>
+
+    <div class="toel-section">
+      <div class="toel-section-title">Categorisering</div>
+      <table class="toel-table">
+        <tr><td>Eigendom</td><td>Bij meerdere (soorten) eigenaren is de meerderheidsaandeelhouder gekozen. In de kolom 'Extra info eigenaar' staat aanvullende informatie over (mede)aandeelhouders. Deze lijst is niet uitputtend en exacte percentages zijn vaak niet bekend.</td></tr>
+        <tr><td>* (asterisk)</td><td>Bij bedrijven met een * achter hun naam is de precieze chipomzet niet bekend. Het getoonde cijfer benadert dit het best — bijvoorbeeld bij VDL: niet de concernomzet, maar de 'hightech'-omzet, waarvan semicon de belangrijkste klant is.</td></tr>
+        <tr><td>Privacy</td><td>Om ethische redenen zijn geen namen van individuele bestuurders en/of investeerders opgenomen in de lijst.</td></tr>
+      </table>
+    </div>
+
+    <div class="toel-section">
+      <div class="toel-section-title">Contact &amp; fouten</div>
+      <table class="toel-table">
+        <tr><td>Fout in lijst?</td><td>Ziet u een fout of heeft u aanvullende informatie? Neem contact op via <a href="mailto:info@hollandswelvaren.press" style="color:#1a3a5c">info@hollandswelvaren.press</a>.</td></tr>
+        <tr><td>Disclaimer</td><td>De data zijn zorgvuldig samengesteld, maar er kunnen fouten in zitten. De koper is zelf verantwoordelijk voor verificatie voordat hij beslissingen neemt op basis van de dataset. Hollands Welvaren is niet aansprakelijk voor directe of indirecte schade als gevolg van gebruik van de dataset.</td></tr>
+      </table>
+    </div>
+
+    <div class="toel-section">
+      <div class="toel-section-title">Gebruik van de lijst</div>
+      <table class="toel-table">
+        <tr><td>Intern gebruik</td><td>De dataset is uitsluitend bestemd voor intern gebruik door de koper. Doorverkoop, herverdeling of publicatie van de ruwe data is niet toegestaan.</td></tr>
+        <tr><td>Citeren</td><td>Koper mag bevindingen en analyses publiceren, maar niet de dataset zelf of substantiële delen ervan reproduceren.</td></tr>
+        <tr><td>Afgeleide producten</td><td>Koper mag geen eigen database bouwen op basis van deze data om die vervolgens te verkopen.</td></tr>
+        <tr><td>Attributie</td><td>Koper mag deze data gebruiken in rapporten of publicaties, mits Hollands Welvaren wordt vermeld als bron.</td></tr>
+      </table>
+    </div>
+
+    <div class="toel-legal">
+      De dataset als geheel is een databank in de zin van de Databankenwet (sui generis databankrecht). Substantiële extractie is verboden zonder toestemming. De selectie, ordening en categorisering zijn auteursrechtelijk beschermd werk van J.H. Journalistiek / Hollands Welvaren.
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════════════════════════════════════
-// CONFIGURATIE – vervang de URL door jouw Google Sheets CSV-link:
-//   Sheets → Bestand → Delen → Publiceren op het web → Blad 1 → CSV → Kopieer
+// CONFIGURATIE
 //
 // Verwachte kolomnamen in de sheet (rij 1):
-//   naam | activiteit | type | provincie | asml | omzet | winst | jaar |
-//   werknemers | adres | opgericht | ubo | eigenaar
+//   Bedrijf | Voornaamste activiteit | Voornaamste sector | provincie |
+//   Omzet laatst bekende jaar | Jaar van omzet | Omzet laats bekende jaar -1 |
+//   Winst voor belasting, meest recent bekende jaar |
+//   Winst voor belasting, voorlaatst bekende jaar |
+//   Werknemers laatst bekende jaar | Adres | lat | lon |
+//   Opgericht in | UBO | Soort eigendom | Extra info eigenaar (niet uitputtend) |
+//   Link naar jaarverslag | Opmerkingen
 //
 // eigenaar_type wordt automatisch berekend — niet nodig in de sheet.
 // ══════════════════════════════════════════════════════════════════════════════
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRD-PPXdQm8ArJCnBc8u7D5Gl8biX79O9I3fWVVsmeAhciadADCQVZJ2knANi59I9CKcHO3eO1I8pwp/pub?gid=1931816964&single=true&output=csv';
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEfoOUxdmDw5gk4ux9qB-f0tED5PYx3C6NmGcpXffd__LcdRxW_ZjoLIljgVb6sv0YHKUk05-wmTCa/pub?gid=902589706&single=true&output=csv';
 
 // ── Kleuren ───────────────────────────────────────────────────────────────────
 const KLEUREN = {
   type: {
     'Chipmachine(onderdelen)maker': '#1a3a5c',
     'Chipdienstverlener':           '#2e9e6b',
+    'Chipmaker':                    '#e8640c',
     'Chipontwikkelaar':             '#7b4ea6',
-    'Chipfabrikant':                '#e8640c',
+    'Chipfabrikant':                '#c0392b',
   },
   provincie: {
     'Noord-Brabant': '#1a3a5c', 'Gelderland':    '#2e9e6b',
     'Zuid-Holland':  '#7b4ea6', 'Noord-Holland': '#e8640c',
     'Utrecht':       '#c0392b', 'Overijssel':    '#d4a017',
+    'Flevoland':     '#16a085', 'Limburg':       '#8e44ad',
+    'Groningen':     '#2c3e50', 'Friesland':     '#f39c12',
+    'Drenthe':       '#27ae60', 'Zeeland':       '#e74c3c',
+    'Noord-Holland': '#e8640c',
   },
   eigenaar_type: {
     'Beursgenoteerd':      '#1a3a5c', 'Durfinvesteerders':   '#7b4ea6',
@@ -211,7 +320,7 @@ const FALLBACK = [
 let DATA          = [];
 let MAX_OMZET     = 1;
 let MAX_WERKNEMERS = 1;
-const ST = { grouping: 'type', zoomLevel: '', selectedCompany: null, ts: 0, metric: 'omzet', view: 'treemap', mapProvince: null };
+const ST = { grouping: 'type', zoomLevel: '', selectedCompany: null, ts: 0, metric: 'werknemers', view: 'treemap', mapProvince: null };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function eigenaarType(v) {
@@ -230,7 +339,7 @@ function eigenaarType(v) {
 
 function toNum(v) {
   if (v == null || v === '' || v === 'null' || v === 'NULL') return null;
-  const n = Number(v);
+  const n = Number(String(v).replace(',', '.'));
   return isNaN(n) ? null : n;
 }
 
@@ -239,16 +348,33 @@ function fmtBedrag(v) {
 }
 
 function verwerk(r) {
-  const omzet      = toNum(r.omzet);
-  const werknemers = toNum(r.werknemers);
+  // Ondersteunt zowel nieuwe sheetnamen als de interne namen van FALLBACK
+  const naam       = String(r['Bedrijf'] ?? r.naam ?? '').trim();
+  const activiteit = r['Voornaamste activiteit'] ?? r.activiteit ?? '';
+  const type       = String(r['Voornaamste sector'] ?? r.type ?? '').trim();
+  const provincie  = r['provincie']              ?? r.provincie  ?? '';
+  const adres      = r['Adres']                  ?? r.adres      ?? '';
+  const opgericht  = String(r['Opgericht in']    ?? r.opgericht  ?? '').trim() || null;
+  const ubo        = r['UBO']                    ?? r.ubo        ?? '';
+  const eigenaar   = r['Soort eigendom']         ?? r.eigenaar   ?? '';
+  const eigenaar_extra = r['Extra info eigenaar (niet uitputtend)'] ?? '';
+  const link_jaarverslag = r['Link naar jaarverslag'] ?? '';
+  const opmerkingen = r['Opmerkingen'] ?? '';
+
+  const omzet      = toNum(r['Omzet laatst bekende jaar']  ?? r.omzet);
+  const omzet_vorig = toNum(r['Omzet laats bekende jaar -1'] ?? null);
+  const jaar       = toNum(r['Jaar van omzet'] ?? r.jaar);
+  const winst      = toNum(r['Winst voor belasting, meest recent bekende jaar'] ?? r.winst);
+  const winst_vorig = toNum(r['Winst voor belasting, voorlaatst bekende jaar'] ?? null);
+  const werknemers = toNum(r['Werknemers laatst bekende jaar'] ?? r.werknemers);
+  const lat        = toNum(r.lat);
+  const lon        = toNum(r.lon);
+
   return {
-    ...r,
-    omzet,
-    winst:         toNum(r.winst),
-    werknemers,
-    opgericht:     toNum(r.opgericht),
-    asml:          [true, 'true', 'TRUE', 1, '1', 'ja', 'Ja'].includes(r.asml),
-    eigenaar_type: eigenaarType(r.eigenaar),
+    naam, activiteit, type, provincie, adres, opgericht, ubo, eigenaar,
+    eigenaar_extra, link_jaarverslag, opmerkingen,
+    omzet, omzet_vorig, jaar, winst, winst_vorig, werknemers, lat, lon,
+    eigenaar_type: eigenaarType(eigenaar),
     omzet_display:      omzet      != null ? omzet      : 0.5,
     werknemers_display: werknemers != null ? werknemers : 0.5,
   };
@@ -260,7 +386,7 @@ function laadSheet() {
     Papa.parse(SHEET_URL, {
       download: true, header: true, dynamicTyping: true, skipEmptyLines: true,
       complete: r => resolve(
-        r.data.filter(d => d.naam && String(d.naam).trim()).map(verwerk)
+        r.data.filter(d => (d['Bedrijf'] || d.naam) && String(d['Bedrijf'] || d.naam).trim()).map(verwerk)
       ),
       error: reject,
     });
@@ -577,19 +703,18 @@ function renderBarList(animate = false) {
     const valStr  = isOmzet ? fmtBedrag(row.omzet) : fmtWerknemers(row.werknemers);
     const open    = row.naam === ST.selectedCompany;
 
-    const velden = [
-      ['Categorie',        row.type],
-      ['Provincie',        row.provincie],
-      ['Activiteit',       row.activiteit],
-      ['Adres',            row.adres],
-      ['Omzet',            row.omzet != null ? fmtBedrag(row.omzet) : null],
-      ['Winst',            row.winst     != null ? fmtBedrag(row.winst) : null],
-      ['Werknemers',       row.werknemers != null ? Number(row.werknemers).toLocaleString('nl-NL') : null],
-      ['ASML-leverancier', row.asml ? 'Ja' : 'Nee'],
-      ['Eigenaar',         row.eigenaar],
-      ['UBO',              row.ubo],
-      ['Opgericht',        row.opgericht != null ? String(row.opgericht) : null],
-    ].filter(([, v]) => v != null && String(v).trim() !== '');
+    const jaarLabel = row.jaar ? ` ${row.jaar}` : '';
+    const stats = [
+      ['Werknemers',  row.werknemers != null ? fmtWerknemers(row.werknemers) : '—'],
+      ['Omzet' + jaarLabel, row.omzet != null ? fmtBedrag(row.omzet) : '—'],
+      ['Winst' + jaarLabel, row.winst != null ? fmtBedrag(row.winst) : (row.omzet != null ? '—' : null)],
+    ].filter(([, v]) => v != null);
+
+    const def = (v) => v != null && String(v).trim() !== '' ? v : null;
+    const linkHtml = row.link_jaarverslag
+      ? `<a href="${row.link_jaarverslag}" target="_blank" rel="noopener" style="color:#1a3a5c">↗ jaarverslag</a>`
+      : null;
+    const winstVorigLabel = row.winst_vorig != null ? fmtBedrag(row.winst_vorig) : null;
 
     return `
       <div class="b-row" data-naam="${row.naam.replace(/"/g, '&quot;')}">
@@ -607,7 +732,30 @@ function renderBarList(animate = false) {
         </div>
         <div class="detail ${open ? 'open' : ''}" style="border-left-color:${color}">
           <div class="d-head" style="color:${color}">${row.naam}</div>
-          ${velden.map(([k, v]) => `<div class="d-row"><span class="d-key">${k}: </span>${v}</div>`).join('')}
+          <div class="d-stats">
+            ${stats.map(([l, v]) => `<div class="d-stat"><span class="d-stat-lbl">${l}</span><span class="d-stat-val">${v}</span></div>`).join('')}
+          </div>
+          ${[
+            [def(row.activiteit), null],
+            [def(row.type),       'Categorie'],
+            [def(row.provincie),  'Provincie'],
+            [def(row.adres),      'Adres'],
+            [def(row.opgericht),  'Opgericht'],
+            ['divider'],
+            [def(row.eigenaar),   'Eigenaar'],
+            [def(row.eigenaar_extra), 'Extra info'],
+            [def(row.ubo),        'UBO'],
+            ['divider'],
+            [winstVorigLabel,     'Winst vorig jaar'],
+            [linkHtml,            'Jaarverslag'],
+            [def(row.opmerkingen),'Opmerkingen'],
+          ].filter(([v]) => v != null).map(([v, k]) =>
+            v === 'divider'
+              ? '<hr class="d-divider">'
+              : k
+                ? `<div class="d-row"><span class="d-key">${k}</span><span class="d-val">${v}</span></div>`
+                : `<div class="d-row" style="color:#555;font-style:italic;font-size:12px">${v}</div>`
+          ).join('')}
         </div>
       </div>`;
   }).join('');
@@ -772,6 +920,24 @@ function koppelListeners() {
       renderBarList();
     });
   });
+
+  // Toelichting modal
+  document.getElementById('toel-btn').addEventListener('click', () => {
+    document.getElementById('toel-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  });
+  document.getElementById('toel-close').addEventListener('click', sluitToelichting);
+  document.getElementById('toel-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) sluitToelichting();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') sluitToelichting();
+  });
+}
+
+function sluitToelichting() {
+  document.getElementById('toel-overlay').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 // ── Initialisatie ─────────────────────────────────────────────────────────────
@@ -815,8 +981,8 @@ async function init() {
         </button>
       </div>
       <div class="m-tabs">
-        <button class="m-tab on" data-m="omzet">Omzet</button>
-        <button class="m-tab"    data-m="werknemers">Werknemers</button>
+        <button class="m-tab"    data-m="omzet">Omzet</button>
+        <button class="m-tab on" data-m="werknemers">Werknemers</button>
       </div>
     </div>
     <div id="tm-wrap">
@@ -834,6 +1000,7 @@ async function init() {
       <div>
         <button id="reset">Toon alles</button>
         <button id="download">↓ Download CSV</button>
+        <button id="toel-btn">ℹ Toelichting</button>
       </div>
     </div>
     <div id="bar-list"></div>
