@@ -105,6 +105,7 @@
     /* Leaflet kaart */
     .leaflet-container { background: #ddeef5; cursor: default !important; }
     .leaflet-interactive { cursor: pointer !important; }
+    .leaflet-interactive:focus { outline: none; }
     .prov-tip.leaflet-tooltip {
       font-family: Arial, sans-serif; font-size: 12px;
       background: #fff; border: 1px solid #e0ddd6; border-radius: 2px;
@@ -161,6 +162,27 @@
     #toel-btn     { background:none; border:1px solid #888; color:#888; font-family:Arial;
                     font-size:11px; padding:5px 12px; cursor:pointer; }
     #toel-btn:hover { border-color:#1a3a5c; color:#1a3a5c; }
+
+    /* Paywall */
+    #paywall { background:#fff; border:1px solid #e0ddd6; padding:28px 24px; margin-bottom:28px; }
+    #paywall-titel { font-family:Georgia,serif; font-size:17px; color:#1a3a5c; margin:0 0 6px; }
+    #paywall-sub   { font-family:Arial; font-size:13px; color:#555; margin:0 0 16px; line-height:1.6; }
+    #paywall-form  { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    #paywall-input { font-family:Arial; font-size:13px; padding:7px 12px; border:1px solid #e0ddd6;
+                     border-radius:2px; flex:1; min-width:160px; max-width:260px; outline:none; }
+    #paywall-input:focus { border-color:#1a3a5c; }
+    #paywall-btn   { font-family:Arial; font-size:11px; letter-spacing:.5px; padding:8px 18px;
+                     background:#1a3a5c; color:#fff; border:none; border-radius:2px; cursor:pointer; }
+    #paywall-btn:hover { background:#14304f; }
+    #paywall-fout  { font-family:Arial; font-size:12px; color:#c0392b; margin:8px 0 0; display:none; }
+
+    /* Lock-state: verberg bar-list en bar-hdr */
+    body.locked #bar-hdr  { display:none; }
+    body.locked #bar-list { display:none; }
+    body.locked #tm-tip   { display:none !important; }
+
+    /* Unlock-state: verberg paywall */
+    body:not(.locked) #paywall { display:none; }
   </style>
 </head>
 <body>
@@ -173,60 +195,10 @@
 <div id="toel-overlay">
   <div id="toel-panel">
     <button id="toel-close">✕ Sluiten</button>
-    <p class="toel-h1">Over deze lijst</p>
-    <p class="toel-sub">Lees dit goed door voordat je met de lijst aan de slag gaat</p>
-
-    <div class="toel-section">
-      <div class="toel-section-title">Algemeen</div>
-      <table class="toel-table">
-        <tr><td>Taal</td><td>De database is in het Nederlands.</td></tr>
-        <tr><td>Actualiteit</td><td>De gegevens zijn in april 2026 verzameld, op basis van de toen meest recent bekende jaarverslagen.</td></tr>
-        <tr><td>Weergave</td><td>De omzet-, winst- en personeelscijfers zijn op twee manieren weergegeven: per jaar (2025, 2024, 2023) en als 'laatst beschikbaar jaar'. Dat laatste kan worden gebruikt om bedrijven te ranken op hun meest recente cijfers.</td></tr>
-        <tr><td>Scope</td><td>Hollands Welvaren heeft geprobeerd alle bedrijven die puur actief zijn in de chipsector, of daar substantiële activiteiten in ondernemen, op te nemen. Volledigheid kan niet worden gegarandeerd.</td></tr>
-        <tr><td>Buitenlandse bedrijven</td><td>Bedrijven komen in aanmerking als zij overwegend Nederlands zijn. Buitenlandse bedrijven met een filiaal hier (Bosch bijvoorbeeld) komen niet in aanmerking. Nederlandse chipbedrijven die zijn overgenomen door een buitenlandse branchegenoot wel. Soms is er een grijs gebied (zoals bij Frencken), waarbij Hollands Welvaren naar eigen inzicht kiest.</td></tr>
-        <tr><td>Bronnen</td><td>De meeste informatie is afkomstig uit jaarverslagen bij de Kamer van Koophandel of op bedrijfswebsites. Vooral bij kleinere bedrijven zijn jaarverslagen summier; in diverse gevallen is extra informatie rechtstreeks bij bedrijven opgevraagd.</td></tr>
-      </table>
-    </div>
-
-    <div class="toel-section">
-      <div class="toel-section-title">Cijfers</div>
-      <table class="toel-table">
-        <tr><td>Omzet</td><td>Waar bekend is enkel de omzet genomen die daadwerkelijk uit de chipindustrie voortkomt. Bij ASML is dat de totale omzet; bij NTS Group slechts een deel van de concernomzet.</td></tr>
-        <tr><td>Winst</td><td>Het gaat om de winst vóór belasting. Van bedrijven die ook in niet-chipsectoren actief zijn, is de winst vaak niet uitgesplitst en ontbreekt het winstcijfer in deze lijst.</td></tr>
-        <tr><td>Personeel</td><td>Cijfers komen in principe uit jaarverslagen, maar soms geven die geen goed beeld (holding-cijfers, wisseling van bron per jaar). Een zichtbare stijging of daling kan dan meer zeggen over de wijziging in dataverzameling dan over de daadwerkelijke groei of krimp.</td></tr>
-        <tr><td>Opmerkingen</td><td>In de kolom 'opmerkingen' per bedrijf staan technische verduidelijkingen, bijvoorbeeld over hoe een omzetcijfer tot stand is gekomen.</td></tr>
-      </table>
-    </div>
-
-    <div class="toel-section">
-      <div class="toel-section-title">Categorisering</div>
-      <table class="toel-table">
-        <tr><td>Eigendom</td><td>Bij meerdere (soorten) eigenaren is de meerderheidsaandeelhouder gekozen. In de kolom 'Extra info eigenaar' staat aanvullende informatie over (mede)aandeelhouders. Deze lijst is niet uitputtend en exacte percentages zijn vaak niet bekend.</td></tr>
-        <tr><td>* (asterisk)</td><td>Bij bedrijven met een * achter hun naam is de precieze chipomzet niet bekend. Het getoonde cijfer benadert dit het best — bijvoorbeeld bij VDL: niet de concernomzet, maar de 'hightech'-omzet, waarvan semicon de belangrijkste klant is.</td></tr>
-        <tr><td>Privacy</td><td>Om ethische redenen zijn geen namen van individuele bestuurders en/of investeerders opgenomen in de lijst.</td></tr>
-      </table>
-    </div>
-
-    <div class="toel-section">
-      <div class="toel-section-title">Contact &amp; fouten</div>
-      <table class="toel-table">
-        <tr><td>Fout in lijst?</td><td>Ziet u een fout of heeft u aanvullende informatie? Neem contact op via <a href="mailto:info@hollandswelvaren.press" style="color:#1a3a5c">info@hollandswelvaren.press</a>.</td></tr>
-        <tr><td>Disclaimer</td><td>De data zijn zorgvuldig samengesteld, maar er kunnen fouten in zitten. De koper is zelf verantwoordelijk voor verificatie voordat hij beslissingen neemt op basis van de dataset. Hollands Welvaren is niet aansprakelijk voor directe of indirecte schade als gevolg van gebruik van de dataset.</td></tr>
-      </table>
-    </div>
-
-    <div class="toel-section">
-      <div class="toel-section-title">Gebruik van de lijst</div>
-      <table class="toel-table">
-        <tr><td>Intern gebruik</td><td>De dataset is uitsluitend bestemd voor intern gebruik door de koper. Doorverkoop, herverdeling of publicatie van de ruwe data is niet toegestaan.</td></tr>
-        <tr><td>Citeren</td><td>Koper mag bevindingen en analyses publiceren, maar niet de dataset zelf of substantiële delen ervan reproduceren.</td></tr>
-        <tr><td>Afgeleide producten</td><td>Koper mag geen eigen database bouwen op basis van deze data om die vervolgens te verkopen.</td></tr>
-        <tr><td>Attributie</td><td>Koper mag deze data gebruiken in rapporten of publicaties, mits Hollands Welvaren wordt vermeld als bron.</td></tr>
-      </table>
-    </div>
-
-    <div class="toel-legal">
-      De dataset als geheel is een databank in de zin van de Databankenwet (sui generis databankrecht). Substantiële extractie is verboden zonder toestemming. De selectie, ordening en categorisering zijn auteursrechtelijk beschermd werk van J.H. Journalistiek / Hollands Welvaren.
+    <div id="toel-body">
+      <p class="toel-h1">Over deze lijst</p>
+      <p class="toel-sub">Lees dit goed door voordat je met de lijst aan de slag gaat</p>
+      <div class="toel-section" style="color:#888;font-family:Arial;font-size:13px">Toelichting laden…</div>
     </div>
   </div>
 </div>
@@ -247,6 +219,8 @@
 // eigenaar_type wordt automatisch berekend — niet nodig in de sheet.
 // ══════════════════════════════════════════════════════════════════════════════
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEfoOUxdmDw5gk4ux9qB-f0tED5PYx3C6NmGcpXffd__LcdRxW_ZjoLIljgVb6sv0YHKUk05-wmTCa/pub?gid=902589706&single=true&output=csv';
+const TOEL_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEfoOUxdmDw5gk4ux9qB-f0tED5PYx3C6NmGcpXffd__LcdRxW_ZjoLIljgVb6sv0YHKUk05-wmTCa/pub?gid=799366299&single=true&output=csv';
+const PASSWORD  = 'chipindustrie';
 
 // ── Kleuren ───────────────────────────────────────────────────────────────────
 const KLEUREN = {
@@ -347,6 +321,74 @@ function fmtBedrag(v) {
   return v != null ? `€\u202f${Number(v).toLocaleString('nl-NL')}\u202fmln` : '—';
 }
 
+// ── Toelichting laden en renderen ─────────────────────────────────────────────
+function laadToelichting() {
+  return new Promise((resolve, reject) => {
+    Papa.parse(TOEL_URL, {
+      download: true, header: false, skipEmptyLines: false,
+      complete: r => resolve(r.data),
+      error: reject,
+    });
+  });
+}
+
+function linkify(s) {
+  const esc = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return esc.replace(/([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/g,
+    '<a href="mailto:$1" style="color:#1a3a5c">$1</a>');
+}
+
+function renderToelichting(rows) {
+  const body = document.getElementById('toel-body');
+  if (!body || !rows?.length) return;
+
+  const title  = String(rows[0]?.[0] ?? '').trim() || 'Over deze lijst';
+  const rawSub = String(rows[1]?.[0] ?? '').trim();
+  const subtitle = rawSub ? rawSub.charAt(0) + rawSub.slice(1).toLowerCase() : '';
+
+  const sections = [];
+  let curTitle = null, curRows = [];
+  const legalLines = [];
+
+  for (let i = 2; i < rows.length; i++) {
+    const key = String(rows[i]?.[0] ?? '').trim();
+    const val = String(rows[i]?.[1] ?? '').trim();
+    if (!key && !val) continue;
+    if (!key && val)  { legalLines.push(val); continue; }
+    if (key && !val)  {
+      if (key.endsWith(':')) {
+        if (curRows.length) sections.push({ title: curTitle, rows: curRows });
+        curTitle = key.slice(0, -1);
+        curRows  = [];
+      }
+      continue;
+    }
+    curRows.push([key, val]);
+  }
+  if (curRows.length) sections.push({ title: curTitle, rows: curRows });
+
+  const escape = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const sectionsHtml = sections.map(s => `
+    <div class="toel-section">
+      ${s.title ? `<div class="toel-section-title">${escape(s.title)}</div>` : ''}
+      <table class="toel-table">
+        ${s.rows.map(([k, v]) => `<tr><td>${escape(k)}</td><td>${linkify(v)}</td></tr>`).join('')}
+      </table>
+    </div>`).join('');
+
+  const legalHtml = legalLines.length
+    ? `<div class="toel-legal"><ul>${legalLines.map(l => `<li>${linkify(l)}</li>`).join('')}</ul></div>`
+    : '';
+
+  body.innerHTML = `
+    <p class="toel-h1">${escape(title)}</p>
+    <p class="toel-sub">${escape(subtitle)}</p>
+    ${sectionsHtml}
+    ${legalHtml}
+  `;
+}
+
 function verwerk(r) {
   // Ondersteunt zowel nieuwe sheetnamen als de interne namen van FALLBACK
   const naam       = String(r['Bedrijf'] ?? r.naam ?? '').trim();
@@ -367,13 +409,16 @@ function verwerk(r) {
   const winst      = toNum(r['Winst voor belasting, meest recent bekende jaar'] ?? r.winst);
   const winst_vorig = toNum(r['Winst voor belasting, voorlaatst bekende jaar'] ?? null);
   const werknemers = toNum(r['Werknemers laatst bekende jaar'] ?? r.werknemers);
+  const omzet_ontwikkeling = toNum(r['Omzetontwikkeling'] ?? null);
+  const winst_ontwikkeling = toNum(r['Winstontwikkeling'] ?? null);
   const lat        = toNum(r.lat);
   const lon        = toNum(r.lon);
 
   return {
     naam, activiteit, type, provincie, adres, opgericht, ubo, eigenaar,
     eigenaar_extra, link_jaarverslag, opmerkingen,
-    omzet, omzet_vorig, jaar, winst, winst_vorig, werknemers, lat, lon,
+    omzet, omzet_vorig, jaar, winst, winst_vorig, werknemers,
+    omzet_ontwikkeling, winst_ontwikkeling, lat, lon,
     eigenaar_type: eigenaarType(eigenaar),
     omzet_display:      omzet      != null ? omzet      : 0.5,
     werknemers_display: werknemers != null ? werknemers : 0.5,
@@ -637,7 +682,8 @@ function onTreemapKlik(ev) {
   const known  = new Set(DATA.map(d => d[ST.grouping]).filter(Boolean));
 
   if (known.has(parent)) {
-    // Bedrijfstegel: selecteer in barlijst (geen zoom) + scroll ernaar toe
+    // Bedrijfstegel: alleen actief wanneer ontgrendeld
+    if (document.body.classList.contains('locked')) return;
     ST.zoomLevel       = parent;
     ST.selectedCompany = id;
     renderBarList();
@@ -704,10 +750,20 @@ function renderBarList(animate = false) {
     const open    = row.naam === ST.selectedCompany;
 
     const jaarLabel = row.jaar ? ` ${row.jaar}` : '';
+    const fmtOntwikkeling = (v) => {
+      if (v == null) return null;
+      const sign  = v > 0 ? '+' : '';
+      const pct   = sign + v.toLocaleString('nl-NL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+      const arrow = v > 0 ? ' ▲' : v < 0 ? ' ▼' : '';
+      const color = v > 0 ? '#2e9e6b' : v < 0 ? '#c0392b' : '#888';
+      return `<span style="color:${color}">${pct}${arrow}</span>`;
+    };
     const stats = [
       ['Werknemers',  row.werknemers != null ? fmtWerknemers(row.werknemers) : '—'],
       ['Omzet' + jaarLabel, row.omzet != null ? fmtBedrag(row.omzet) : '—'],
+      ['Omzetgroei',  fmtOntwikkeling(row.omzet_ontwikkeling)],
       ['Winst' + jaarLabel, row.winst != null ? fmtBedrag(row.winst) : (row.omzet != null ? '—' : null)],
+      ['Winstgroei',  fmtOntwikkeling(row.winst_ontwikkeling)],
     ].filter(([, v]) => v != null);
 
     const def = (v) => v != null && String(v).trim() !== '' ? v : null;
@@ -809,6 +865,28 @@ function downloadCSV() {
   a.download = 'chipindustrie-selectie.csv';
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+// ── Paywall ───────────────────────────────────────────────────────────────────
+function koppelPaywall() {
+  const btn   = document.getElementById('paywall-btn');
+  const input = document.getElementById('paywall-input');
+  const fout  = document.getElementById('paywall-fout');
+
+  const probeer = () => {
+    if (input.value === PASSWORD) {
+      localStorage.setItem('chipdb_unlocked', '1');
+      document.body.classList.remove('locked');
+      fout.style.display = 'none';
+      renderBarList();
+    } else {
+      fout.style.display = 'block';
+      input.select();
+    }
+  };
+
+  btn.addEventListener('click', probeer);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') probeer(); });
 }
 
 // ── Event listeners ───────────────────────────────────────────────────────────
@@ -933,6 +1011,8 @@ function koppelListeners() {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') sluitToelichting();
   });
+
+  koppelPaywall();
 }
 
 function sluitToelichting() {
@@ -943,6 +1023,8 @@ function sluitToelichting() {
 // ── Initialisatie ─────────────────────────────────────────────────────────────
 async function init() {
   let rijen = null;
+
+  laadToelichting().then(renderToelichting).catch(e => console.warn('Toelichting laden mislukt:', e));
 
   if (!SHEET_URL.startsWith('VERVANG')) {
     try {
@@ -995,6 +1077,16 @@ async function init() {
       </button>
     </div>
     <div id="legend"></div>
+    <div id="paywall">
+      <p id="paywall-titel">Volledige dataset beschikbaar voor abonnees</p>
+      <p id="paywall-sub">De treemap geeft een overzicht van de Nederlandse chipindustrie.<br>
+         Voer uw toegangscode in voor toegang tot bedrijfsdata, financiële cijfers en eigendomsinformatie.</p>
+      <div id="paywall-form">
+        <input id="paywall-input" type="password" placeholder="Toegangscode">
+        <button id="paywall-btn">Ontgrendel</button>
+      </div>
+      <p id="paywall-fout">Onjuiste toegangscode — probeer opnieuw.</p>
+    </div>
     <div id="bar-hdr">
       <span id="filter-label"></span>
       <div>
@@ -1005,6 +1097,10 @@ async function init() {
     </div>
     <div id="bar-list"></div>
     <div id="tm-tip"></div>`;
+
+  if (localStorage.getItem('chipdb_unlocked') !== '1') {
+    document.body.classList.add('locked');
+  }
 
   initTreemap();
   renderLegend();
