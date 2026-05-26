@@ -759,10 +759,10 @@ function renderBarList(animate = false) {
       return `<span style="color:${color}">${pct}${arrow}</span>`;
     };
     const stats = [
-      ['Werknemers',  row.werknemers != null ? fmtWerknemers(row.werknemers) : '—'],
-      ['Omzet' + jaarLabel, row.omzet != null ? fmtBedrag(row.omzet) : '—'],
+      ['Werknemers',  row.werknemers != null ? fmtWerknemers(row.werknemers) : null],
+      ['Omzet' + jaarLabel, row.omzet != null ? fmtBedrag(row.omzet) : null],
       ['Omzetgroei',  fmtOntwikkeling(row.omzet_ontwikkeling)],
-      ['Winst' + jaarLabel, row.winst != null ? fmtBedrag(row.winst) : (row.omzet != null ? '—' : null)],
+      ['Winst' + jaarLabel, row.winst != null ? fmtBedrag(row.winst) : null],
       ['Winstgroei',  fmtOntwikkeling(row.winst_ontwikkeling)],
     ].filter(([, v]) => v != null);
 
