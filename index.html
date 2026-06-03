@@ -124,6 +124,9 @@
               text-align: center; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.5);
               white-space: nowrap; line-height: 1.5; }
 
+    /* Verberg Plotly's eigen hover-laag (arcering) volledig — eigen tooltip via #tm-tip */
+    #treemap .hoverlayer { display: none !important; }
+
     /* Laad-indicator */
     #loading { display: flex; align-items: center; justify-content: center;
                min-height: 300px; font-family: Arial; color: #888; font-size: 14px; }
@@ -443,7 +446,6 @@ function maakTrace(grouping) {
   const colors    = KLEUREN[grouping];
   const cats      = [...new Set(DATA.map(d => d[grouping]).filter(Boolean))].sort();
   const veld      = ST.metric === 'omzet' ? 'omzet_display' : 'werknemers_display';
-  const hoverTmpl = '<extra></extra>'; // tooltip via custom #tm-tip
   const catSums = {};
   for (const d of DATA) {
     const key = d[grouping];
@@ -464,7 +466,8 @@ function maakTrace(grouping) {
     type: 'treemap', ids, labels, parents, values, branchvalues: 'total',
     marker: { colors: mc },
     textinfo: 'label',
-    hovertemplate: hoverTmpl,
+    hovertemplate: '<extra></extra>',  // hover-events nodig voor eigen #tm-tip; Plotly's hover-laag is via CSS verborgen
+    pathbar: { visible: false },       // geen breadcrumb met pijl-naar-rechts
     textfont: { family: 'Arial, sans-serif' },
     maxdepth: 2,
   };
@@ -489,7 +492,11 @@ function initTreemap() {
     { displayModeBar: false, responsive: true }
   ).then(gd => {
     Plotly.addFrames(gd, frames);
-    gd.on('plotly_click', onTreemapKlik);
+    // Eén handler op plotly_treemapclick: inzoomen op een hoofdcategorie mag,
+    // een klik op een bedrijfstegel opent het infoscherm maar zoomt niet in
+    // (door false terug te geven). plotly_click niet gebruiken: dat event wordt
+    // door een false-return van treemapclick onderdrukt.
+    gd.on('plotly_treemapclick', onTreemapKlik);
     gd.on('plotly_hover', ev => {
       const pt  = ev?.points?.[0];
       if (!pt) return;
@@ -682,17 +689,18 @@ function onTreemapKlik(ev) {
   const known  = new Set(DATA.map(d => d[ST.grouping]).filter(Boolean));
 
   if (known.has(parent)) {
-    // Bedrijfstegel: alleen actief wanneer ontgrendeld
-    if (document.body.classList.contains('locked')) return;
-    ST.zoomLevel       = parent;
+    // Bedrijfstegel: geen inzoom, wel het infoscherm openen (indien ontgrendeld).
+    // ST.zoomLevel niet aanraken: er wordt niet ingezoomd, dus geen uitzoom-knop.
+    if (document.body.classList.contains('locked')) return false;
     ST.selectedCompany = id;
     renderBarList();
     requestAnimationFrame(() => {
       const row = document.querySelector(`.b-row[data-naam="${id.replace(/"/g, '&quot;')}"]`);
       if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
+    return false; // blokkeer Plotly's inzoom op bedrijfsniveau
   } else if (known.has(id)) {
-    // Categorietegel: toggle filter
+    // Categorietegel: laat Plotly inzoomen en synchroniseer de filter
     ST.zoomLevel       = ST.zoomLevel === id ? '' : id;
     ST.selectedCompany = null;
     renderBarList();
@@ -909,7 +917,18 @@ function koppelListeners() {
       hertekenBubbles();
       if (leafletMap) leafletMap.setView([52.3, 5.3], 7);
     } else {
-      updateTreemap();
+      // Animeer het zoomniveau terug naar het overzicht (net als de inzoom)
+      const gd = document.getElementById('treemap');
+      if (gd?._fullData?.length) {
+        Plotly.animate('treemap', {
+          data: [{ level: '' }], traces: [0],
+        }, {
+          transition: { duration: 600, easing: 'cubic-in-out' },
+          frame:      { duration: 600 },
+        });
+      } else {
+        updateTreemap();
+      }
     }
     renderBarList();
   };
